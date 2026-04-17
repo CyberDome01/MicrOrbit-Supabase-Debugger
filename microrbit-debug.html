@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MicrOrbit — Supabase Debugger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #080c12;
+  --bg2: #0d1219;
+  --card: #111827;
+  --card2: #1a2330;
+  --border: rgba(59,130,246,.2);
+  --brand: #3b82f6;
+  --brandh: #60a5fa;
+  --ink: #f0f6ff;
+  --ink2: #cbd5e1;
+  --ink3: #64748b;
+  --ok: #34d399;
+  --okbg: rgba(52,211,153,.12);
+  --warn: #fbbf24;
+  --warnbg: rgba(251,191,36,.12);
+  --err: #f87171;
+  --errbg: rgba(248,113,113,.12);
+  --info: #818cf8;
+  --infobg: rgba(129,140,248,.12);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #0d1219 0%, #111827 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  width: 38px; height: 38px;
+  background: var(--brand);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px; color: white;
+  font-family: var(--mono);
+}
+
+.header h1 { font-size: 17px; font-weight: 700; }
+.header p { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+
+.status-pill {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  background: var(--infobg);
+  color: var(--info);
+  border: 1px solid rgba(129,140,248,.25);
+}
+
+/* MAIN */
+.main { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* SECTION */
+.section { margin-bottom: 28px; }
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--ink3);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* CARD */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* AUTH BOX */
+.auth-box {
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: .08em; }
+.field input {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s;
+}
+.field input:focus { border-color: var(--brand); }
+.field input::placeholder { color: var(--ink3); }
+.field.full { grid-column: 1 / -1; }
+
+/* BUTTONS */
+.btn-row {
+  padding: 16px 24px;
+  background: var(--card2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex; align-items: center; gap: 7px;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+}
+.btn-primary:hover { background: #2563eb; }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-secondary {
+  background: rgba(255,255,255,.06);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: rgba(255,255,255,.1); }
+
+.btn-danger {
+  background: var(--errbg);
+  color: var(--err);
+  border: 1px solid rgba(248,113,113,.25);
+}
+.btn-danger:hover { background: rgba(248,113,113,.2); }
+
+.btn-ok {
+  background: var(--okbg);
+  color: var(--ok);
+  border: 1px solid rgba(52,211,153,.25);
+}
+.btn-ok:hover { background: rgba(52,211,153,.2); }
+
+/* RESULTS TABLE */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.results-table th {
+  background: var(--card2);
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+}
+.results-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.results-table tr:last-child td { border-bottom: none; }
+.results-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.table-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--brandh);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+.badge-ok { background: var(--okbg); color: var(--ok); }
+.badge-err { background: var(--errbg); color: var(--err); }
+.badge-warn { background: var(--warnbg); color: var(--warn); }
+.badge-info { background: var(--infobg); color: var(--info); }
+
+/* LOG */
+.log-box {
+  background: #060a0f;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.log-entry { display: flex; gap: 12px; align-items: flex-start; }
+.log-time { color: var(--ink3); min-width: 60px; }
+.log-ok { color: var(--ok); }
+.log-err { color: var(--err); }
+.log-warn { color: var(--warn); }
+.log-info { color: var(--info); }
+.log-msg { color: var(--ink2); }
+
+/* FIX SQL */
+.sql-block {
+  background: #060a0f;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--ink2);
+  position: relative;
+}
+.sql-kw { color: #60a5fa; }
+.sql-str { color: #34d399; }
+.sql-com { color: var(--ink3); }
+
+.copy-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  padding: 5px 12px;
+  background: rgba(59,130,246,.15);
+  border: 1px solid rgba(59,130,246,.3);
+  border-radius: 6px;
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all .18s;
+}
+.copy-btn:hover { background: rgba(59,130,246,.25); }
+
+/* WRITE TEST */
+.write-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  padding: 20px 24px;
+}
+.write-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.write-card:hover { border-color: var(--brand); background: rgba(59,130,246,.06); }
+.write-card .tname { font-family: var(--mono); font-size: 12px; color: var(--brandh); }
+.write-card .tdesc { font-size: 11px; color: var(--ink3); }
+.write-card .tresult { font-size: 11px; font-weight: 700; margin-top: 4px; }
+
+/* SPINNER */
+.spin {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* PROFILE FIX */
+.profile-info {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kv { display: flex; gap: 12px; font-size: 13px; }
+.kv .k { color: var(--ink3); min-width: 130px; font-family: var(--mono); font-size: 12px; }
+.kv .v { color: var(--ink); font-family: var(--mono); font-size: 12px; word-break: break-all; }
+
+.empty { padding: 24px; text-align: center; color: var(--ink3); font-size: 13px; }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 24px; }
+
+/* PROGRESS BAR */
+.progress { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 0; }
+.progress-fill { height: 100%; background: var(--brand); border-radius: 3px; transition: width .3s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">μ</div>
+  <div>
+    <h1>MicrOrbit — Supabase Debugger</h1>
+    <p>Diagnose & fix your database connection issues</p>
+  </div>
+  <div class="status-pill" id="statusPill">● NOT CONNECTED</div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 1: CONNECTION -->
+  <div class="section">
+    <div class="section-title">① Connection Config</div>
+    <div class="card">
+      <div class="auth-box">
+        <div class="field">
+          <label>Supabase URL</label>
+          <input id="sbUrl" type="text" value="https://slnjrwrdbnlybjfaffft.supabase.co" placeholder="https://xxx.supabase.co">
+        </div>
+        <div class="field">
+          <label>Anon Key</label>
+          <input id="sbKey" type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsbmpyd3JkYm5seWJqZmFmZmZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzQ1MTMsImV4cCI6MjA4OTAxMDUxM30.JedUCdv0mlvHZ-MlDEnhwLBtMgWaDnbmFfozBHQDQAE" placeholder="eyJ...">
+        </div>
+        <div class="field">
+          <label>Your Email</label>
+          <input id="sbEmail" type="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label>Your Password</label>
+          <input id="sbPass" type="password" placeholder="your password">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runSignIn()">
+          <span id="signInSpinner" style="display:none" class="spin"></span>
+          🔐 Sign In & Test Connection
+        </button>
+        <button class="btn btn-secondary" onclick="testAnonAccess()">
+          🌐 Test Anon (no login)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION INFO -->
+  <div class="section" id="sessionSection" style="display:none">
+    <div class="section-title">② Session & Profile</div>
+    <div class="card">
+      <div class="profile-info" id="profileInfo"></div>
+      <div class="progress" id="scanProgress"><div class="progress-fill" id="scanFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- TABLE SCAN -->
+  <div class="section" id="tableScanSection" style="display:none">
+    <div class="section-title">③ Table Access Scan</div>
+    <div class="card">
+      <table class="results-table" id="tableResults">
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Exists</th>
+            <th>SELECT</th>
+            <th>INSERT</th>
+            <th>Rows</th>
+            <th>Issue</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="6" class="empty">Run a connection test first</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WRITE TEST -->
+  <div class="section" id="writeSection" style="display:none">
+    <div class="section-title">④ Live Write Test — Click any table to insert a test record</div>
+    <div class="card">
+      <div class="write-row" id="writeRow"></div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSIS -->
+  <div class="section" id="diagSection" style="display:none">
+    <div class="section-title">⑤ Diagnosis & Fix SQL</div>
+    <div class="card" id="diagCard">
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section">
+    <div class="section-title">Activity Log</div>
+    <div class="log-box" id="logBox">
+      <div class="log-entry"><span class="log-time">--:--</span><span class="log-info">Ready. Enter your credentials and click Sign In.</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+// ── Supabase client (CDN) ──────────────────────────────────────
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+let sb = null;
+let session = null;
+let orgId = null;
+
+const TABLES = [
+  { name: 'user_profiles',          writeTest: null },
+  { name: 'organisations',          writeTest: null },
+  { name: 'crm_leads',              writeTest: { name: 'Debug Test Lead', status: 'new', source: 'website' } },
+  { name: 'hrm_employees',          writeTest: { name: 'Debug Test Employee', status: 'active', employment_type: 'full_time' } },
+  { name: 'projects',               writeTest: { name: 'Debug Test Project', status: 'planning', priority: 'low' } },
+  { name: 'invoices',               writeTest: { invoice_number: 'DBG-0001', status: 'draft', amount: 0 } },
+  { name: 'fms_expenses',           writeTest: { category: 'other', amount: 0, status: 'pending' } },
+  { name: 'microrbit_agents',       writeTest: null },
+  { name: 'microrbit_agent_logs',   writeTest: null },
+  { name: 'platform_notifications', writeTest: null },
+  { name: 'microrbit_data_snapshot',writeTest: null },
+];
+
+// ── Logging ────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const box = document.getElementById('logBox');
+  const now = new Date();
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${t}</span><span class="log-${type}">${msg}</span>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function pill(label, cls) {
+  return `<span class="badge badge-${cls}">${label}</span>`;
+}
+
+// ── Sign In ────────────────────────────────────────────────────
+window.runSignIn = async function() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  const email = document.getElementById('sbEmail').value.trim();
+  const pass = document.getElementById('sbPass').value.trim();
+
+  if (!email || !pass) { log('⚠ Please enter email and password', 'warn'); return; }
+
+  document.getElementById('signInSpinner').style.display = 'inline-block';
+  log('Connecting to Supabase...', 'info');
+
+  try {
+    sb = createClient(url, key);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+
+    session = data.session;
+    log(`✓ Signed in as ${data.user.email} (uid: ${data.user.id.slice(0,8)}...)`, 'ok');
+    document.getElementById('statusPill').textContent = '● CONNECTED';
+    document.getElementById('statusPill').style.color = 'var(--ok)';
+    document.getElementById('statusPill').style.background = 'var(--okbg)';
+
+    await loadProfile(data.user);
+    await scanTables();
+
+  } catch (e) {
+    log(`✗ Sign in failed: ${e.message}`, 'err');
+    document.getElementById('statusPill').textContent = '● AUTH FAILED';
+    document.getElementById('statusPill').style.color = 'var(--err)';
+  } finally {
+    document.getElementById('signInSpinner').style.display = 'none';
+  }
+};
+
+// ── Anon test ─────────────────────────────────────────────────
+window.testAnonAccess = async function() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  log('Testing anonymous (no auth) access...', 'info');
+  sb = createClient(url, key);
+  await scanTables();
+};
+
+// ── Load profile ──────────────────────────────────────────────
+async function loadProfile(user) {
+  document.getElementById('sessionSection').style.display = '';
+  const box = document.getElementById('profileInfo');
+
+  const { data: profile, error } = await sb.from('user_profiles').select('*').eq('id', user.id).maybeSingle();
+
+  if (error) {
+    log(`✗ user_profiles read failed: ${error.message}`, 'err');
+    box.innerHTML = `
+      <div class="kv"><span class="k">uid</span><span class="v">${user.id}</span></div>
+      <div class="kv"><span class="k">email</span><span class="v">${user.email}</span></div>
+      <div class="kv"><span class="k">profile</span><span class="v" style="color:var(--err)">❌ ERROR: ${error.message}</span></div>
+      <div class="kv"><span class="k">org_id</span><span class="v" style="color:var(--err)">❌ MISSING — this breaks all RLS policies!</span></div>
+    `;
+    showProfileFix(user.id);
+    return;
+  }
+
+  if (!profile) {
+    log(`✗ No profile found for uid ${user.id} — this is why data won't load!`, 'err');
+    box.innerHTML = `
+      <div class="kv"><span class="k">uid</span><span class="v">${user.id}</span></div>
+      <div class="kv"><span class="k">email</span><span class="v">${user.email}</span></div>
+      <div class="kv"><span class="k">profile row</span><span class="v" style="color:var(--err)">❌ NOT FOUND in user_profiles</span></div>
+      <div class="kv"><span class="k">org_id</span><span class="v" style="color:var(--err)">❌ MISSING — auth.user_org_id() returns NULL → all RLS fails silently</span></div>
+    `;
+    showProfileFix(user.id);
+    return;
+  }
+
+  orgId = profile.org_id;
+  log(`✓ Profile found. org_id: ${orgId || 'NULL!'}`, orgId ? 'ok' : 'err');
+
+  box.innerHTML = `
+    <div class="kv"><span class="k">uid</span><span class="v">${user.id}</span></div>
+    <div class="kv"><span class="k">email</span><span class="v">${user.email}</span></div>
+    <div class="kv"><span class="k">full_name</span><span class="v">${profile.full_name || '—'}</span></div>
+    <div class="kv"><span class="k">org_id</span><span class="v" style="color:${orgId ? 'var(--ok)' : 'var(--err)'}">${orgId || '❌ NULL — THIS IS THE ROOT CAUSE'}</span></div>
+    <div class="kv"><span class="k">role</span><span class="v">${profile.role || '—'}</span></div>
+    <div class="kv"><span class="k">plan</span><span class="v">${profile.plan || '—'}</span></div>
+  `;
+
+  if (!orgId) showProfileFix(user.id);
+}
+
+// ── Scan tables ───────────────────────────────────────────────
+async function scanTables() {
+  document.getElementById('tableScanSection').style.display = '';
+  document.getElementById('writeSection').style.display = '';
+  const tbody = document.getElementById('tableBody');
+  const writeRow = document.getElementById('writeRow');
+  tbody.innerHTML = '';
+  writeRow.innerHTML = '';
+
+  const issues = [];
+  const fill = document.getElementById('scanFill');
+
+  for (let i = 0; i < TABLES.length; i++) {
+    const t = TABLES[i];
+    fill.style.width = `${Math.round((i / TABLES.length) * 100)}%`;
+
+    // SELECT test
+    const { data: rows, error: selErr } = await sb.from(t.name).select('*', { count: 'exact', head: false }).limit(1);
+    const canSelect = !selErr;
+    const rowCount = rows ? rows.length : 0;
+
+    // INSERT test (only if writeTest provided + can select)
+    let canInsert = null;
+    let insertErr = null;
+
+    if (t.writeTest && orgId) {
+      const payload = { ...t.writeTest, org_id: orgId };
+      const { data: ins, error: insErr } = await sb.from(t.name).insert(payload).select().single();
+      if (!insErr && ins) {
+        canInsert = true;
+        // Clean up
+        await sb.from(t.name).delete().eq('id', ins.id);
+        log(`✓ ${t.name}: insert+delete OK`, 'ok');
+      } else {
+        canInsert = false;
+        insertErr = insErr?.message;
+        log(`✗ ${t.name} insert failed: ${insertErr}`, 'err');
+      }
+    }
+
+    // Determine issue
+    let issue = '—';
+    let issueClass = 'info';
+    if (selErr) {
+      if (selErr.message.includes('does not exist') || selErr.code === '42P01') {
+        issue = 'Table missing';
+        issueClass = 'err';
+        issues.push({ type: 'missing', table: t.name });
+      } else if (selErr.message.includes('policy') || selErr.code === '42501') {
+        issue = 'RLS blocking';
+        issueClass = 'err';
+        issues.push({ type: 'rls', table: t.name });
+      } else {
+        issue = selErr.message.slice(0, 40);
+        issueClass = 'err';
+      }
+    } else if (canInsert === false) {
+      issue = insertErr?.slice(0, 40) || 'Insert blocked';
+      issueClass = 'warn';
+    } else if (rowCount === 0 && canSelect) {
+      issue = 'Empty (OK)';
+      issueClass = 'info';
+    }
+
+    const exists = !selErr || !selErr.message.includes('does not exist');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="table-name">${t.name}</td>
+      <td>${exists ? pill('✓ YES','ok') : pill('✗ NO','err')}</td>
+      <td>${canSelect ? pill('✓ OK','ok') : pill('✗ BLOCKED','err')}</td>
+      <td>${canInsert === null ? pill('—','info') : canInsert ? pill('✓ OK','ok') : pill('✗ BLOCKED','warn')}</td>
+      <td style="font-family:var(--mono);font-size:12px">${canSelect ? rowCount : '—'}</td>
+      <td><span class="badge badge-${issueClass}">${issue}</span></td>
+    `;
+    tbody.appendChild(tr);
+
+    // Write test card
+    if (t.writeTest) {
+      const wc = document.createElement('div');
+      wc.className = 'write-card';
+      wc.innerHTML = `
+        <div class="tname">${t.name}</div>
+        <div class="tdesc">Click to insert test row</div>
+        <div class="tresult" id="wr-${t.name}">—</div>
+      `;
+      wc.onclick = () => liveWriteTest(t.name, t.writeTest);
+      writeRow.appendChild(wc);
+    }
+  }
+
+  fill.style.width = '100%';
+  buildDiagnosis(issues);
+}
+
+// ── Live write test ───────────────────────────────────────────
+window.liveWriteTest = async function(tableName, testData) {
+  const el = document.getElementById(`wr-${tableName}`);
+  if (!sb) { log('Not connected', 'err'); return; }
+  el.textContent = 'Testing...';
+  el.style.color = 'var(--ink3)';
+
+  const payload = orgId ? { ...testData, org_id: orgId } : { ...testData };
+
+  const { data, error } = await sb.from(tableName).insert(payload).select().single();
+  if (error) {
+    el.textContent = '✗ ' + error.message.slice(0, 50);
+    el.style.color = 'var(--err)';
+    log(`✗ ${tableName}: ${error.message}`, 'err');
+  } else {
+    el.textContent = `✓ Inserted id: ${data.id.slice(0,8)}`;
+    el.style.color = 'var(--ok)';
+    log(`✓ ${tableName}: inserted test row`, 'ok');
+    // Cleanup
+    await sb.from(tableName).delete().eq('id', data.id);
+    log(`  → cleaned up test row from ${tableName}`, 'info');
+  }
+};
+
+// ── Build diagnosis ───────────────────────────────────────────
+function buildDiagnosis(issues) {
+  document.getElementById('diagSection').style.display = '';
+  const card = document.getElementById('diagCard');
+
+  if (issues.length === 0 && orgId) {
+    card.innerHTML = `
+      <div style="padding:24px;text-align:center">
+        <div style="font-size:36px;margin-bottom:10px">✅</div>
+        <div style="font-size:16px;font-weight:700;color:var(--ok)">Everything looks good!</div>
+        <div style="font-size:13px;color:var(--ink3);margin-top:6px">All tables exist, RLS allows reads/writes, org_id is set.</div>
+      </div>
+    `;
+    log('✓ No critical issues found', 'ok');
+    return;
+  }
+
+  let sqlFix = '';
+  let diagHtml = '<div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">';
+
+  if (!orgId) {
+    diagHtml += `
+      <div style="background:var(--errbg);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:16px">
+        <div style="font-weight:700;color:var(--err);margin-bottom:6px">🔴 ROOT CAUSE: Missing org_id in user_profiles</div>
+        <div style="font-size:13px;color:var(--ink2);line-height:1.6">
+          Your <code style="font-family:var(--mono);background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">auth.user_org_id()</code> helper returns NULL because your profile row has no <code style="font-family:var(--mono);background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">org_id</code>.
+          Every single RLS policy uses this function — so ALL reads and writes silently return empty or fail.
+          This is almost certainly why "none of your functions work".
+        </div>
+      </div>
+    `;
+    sqlFix += `-- ① Create an org for your account and link your profile\n-- Run this in Supabase SQL Editor:\n\nDO $$\nDECLARE\n  v_org_id uuid := gen_random_uuid();\n  v_user_id uuid;\nBEGIN\n  -- Get your user id\n  SELECT id INTO v_user_id FROM auth.users ORDER BY created_at LIMIT 1;\n\n  -- Create org if you don't have one\n  INSERT INTO organisations (id, name, created_at)\n  VALUES (v_org_id, 'My Organisation', now())\n  ON CONFLICT DO NOTHING;\n\n  -- Link your profile\n  UPDATE user_profiles\n  SET org_id = v_org_id\n  WHERE id = v_user_id;\n\n  -- If profile row doesn't exist, create it\n  INSERT INTO user_profiles (id, org_id, role, plan)\n  VALUES (v_user_id, v_org_id, 'owner', 'professional')\n  ON CONFLICT (id) DO UPDATE SET org_id = v_org_id;\n\n  RAISE NOTICE 'Done. org_id = %', v_org_id;\nEND $$;\n\n`;
+  }
+
+  const missingTables = issues.filter(i => i.type === 'missing').map(i => i.table);
+  if (missingTables.length > 0) {
+    diagHtml += `
+      <div style="background:var(--errbg);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:16px">
+        <div style="font-weight:700;color:var(--err);margin-bottom:6px">🔴 Missing Tables (${missingTables.length})</div>
+        <div style="font-size:13px;color:var(--ink2)">${missingTables.map(t => `<code style="font-family:var(--mono);background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;margin-right:6px">${t}</code>`).join('')}</div>
+      </div>
+    `;
+    sqlFix += `-- ② Create missing tables\n\n`;
+    for (const t of missingTables) {
+      sqlFix += generateCreateTable(t);
+    }
+  }
+
+  diagHtml += `</div>`;
+
+  if (sqlFix) {
+    diagHtml += `
+      <div style="padding:0 24px 20px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px">
+          📋 Run this SQL in your Supabase SQL Editor to fix all issues:
+        </div>
+        <div class="sql-block" id="sqlFix">${sqlFix.replace(/</g,'&lt;').replace(/>/g,'&gt;')}<button class="copy-btn" onclick="copySql()">Copy SQL</button></div>
+      </div>
+      <div style="padding:0 24px 20px">
+        <a href="https://supabase.com/dashboard/project/slnjrwrdbnlybjfaffft/sql/new" target="_blank"
+           style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--brand);color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">
+          → Open Supabase SQL Editor
+        </a>
+      </div>
+    `;
+  }
+
+  card.innerHTML = diagHtml;
+}
+
+function generateCreateTable(name) {
+  const schemas = {
+    'organisations': `CREATE TABLE IF NOT EXISTS organisations (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  name text NOT NULL,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'user_profiles': `CREATE TABLE IF NOT EXISTS user_profiles (\n  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,\n  org_id uuid REFERENCES organisations(id),\n  full_name text,\n  role text DEFAULT 'member',\n  plan text DEFAULT 'free',\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'crm_leads': `CREATE TABLE IF NOT EXISTS crm_leads (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid REFERENCES organisations(id),\n  name text NOT NULL,\n  company text,\n  email text,\n  phone text,\n  status text DEFAULT 'new',\n  source text,\n  score int DEFAULT 0,\n  value numeric DEFAULT 0,\n  notes text,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'hrm_employees': `CREATE TABLE IF NOT EXISTS hrm_employees (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid REFERENCES organisations(id),\n  name text NOT NULL,\n  job_title text,\n  email text,\n  phone text,\n  department text,\n  employment_type text DEFAULT 'full_time',\n  status text DEFAULT 'active',\n  hire_date date,\n  salary numeric,\n  currency text DEFAULT 'USD',\n  notes text,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'projects': `CREATE TABLE IF NOT EXISTS projects (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid REFERENCES organisations(id),\n  name text NOT NULL,\n  description text,\n  status text DEFAULT 'planning',\n  priority text DEFAULT 'medium',\n  budget numeric DEFAULT 0,\n  completion int DEFAULT 0,\n  start_date date,\n  end_date date,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'invoices': `CREATE TABLE IF NOT EXISTS invoices (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid REFERENCES organisations(id),\n  invoice_number text,\n  status text DEFAULT 'draft',\n  amount numeric DEFAULT 0,\n  due_date date,\n  notes text,\n  project_id uuid,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+    'fms_expenses': `CREATE TABLE IF NOT EXISTS fms_expenses (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid REFERENCES organisations(id),\n  category text NOT NULL,\n  amount numeric DEFAULT 0,\n  description text,\n  status text DEFAULT 'pending',\n  date date,\n  project_id uuid,\n  employee_id uuid,\n  created_at timestamptz DEFAULT now()\n);\n\n`,
+  };
+  return schemas[name] || `-- TODO: Define schema for ${name}\n\n`;
+}
+
+// ── Profile fix SQL ───────────────────────────────────────────
+window.showProfileFix = function(uid) {
+  // already handled in buildDiagnosis
+};
+
+window.copySql = function() {
+  const el = document.getElementById('sqlFix');
+  const text = el.innerText.replace('Copy SQL', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    document.querySelector('.copy-btn').textContent = '✓ Copied!';
+    setTimeout(() => { document.querySelector('.copy-btn').textContent = 'Copy SQL'; }, 2000);
+  });
+};
+</script>
+</body>
+</html>
